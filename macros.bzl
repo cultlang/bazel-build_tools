@@ -1,4 +1,4 @@
-def header_generator(extra_headers, deps=[]):
+def header_generator(extra_headers=[], deps=[]):
   native.cc_library(
     name = native.package_name() + "_hdrs",
     hdrs = native.glob([
