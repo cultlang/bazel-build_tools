@@ -21,7 +21,7 @@ def header_generator(packages=[], extra_headers=[], deps=[]):
     deps = packages + deps
   )
 
-def dll_generator(packages=[], deps=[]):
+def dll_generator(packages=[], deps=[], linkopts=[]):
   native.genrule(
     name = native.package_name() + "_importlib",
     outs = [native.package_name() + ".lib"],
@@ -36,7 +36,7 @@ def dll_generator(packages=[], deps=[]):
     linkshared = 1,
     linkopts = _expand_importlibs(packages) + [
       "/ENTRY:_craft_types_DLLMAIN"
-    ],
+    ] + linkopts,
     srcs = native.glob([
       "src/" + native.package_name() + "/**/*.c*",
       "src/" + native.package_name() + "/**/*.c*",
