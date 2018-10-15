@@ -34,7 +34,9 @@ def dll_generator(packages=[], deps=[]):
     name = native.package_name() + ".dll",
     visibility = ["//visibility:public"],
     linkshared = 1,
-    linkopts = _expand_importlibs(packages),
+    linkopts = _expand_importlibs(packages) + [
+      "/ENTRY:_craft_types_DLLMAIN"
+    ],
     srcs = native.glob([
       "src/" + native.package_name() + "/**/*.c*",
       "src/" + native.package_name() + "/**/*.c*",
