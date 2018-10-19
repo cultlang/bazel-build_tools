@@ -11,10 +11,11 @@ def make_impdep(imps):
   return res
 
 def header_generator(packages=[], extra_headers=[], deps=[]):
+  pname = native.package_name().split("/")[-1]
   native.cc_library(
     name = "headers",
     hdrs = native.glob([
-    "src/" + native.package_name() + "/**/*.h*",
+    "src/" + pname + "/**/*.h*",
     ]) + extra_headers,
     includes = ["src"],
     visibility = ["//visibility:public"],
@@ -22,61 +23,63 @@ def header_generator(packages=[], extra_headers=[], deps=[]):
   )
 
 def dll_generator(packages=[], deps=[], linkopts=[]):
+  pname = native.package_name().split("/")[-1]
   native.genrule(
-    name = native.package_name() + "_importlib",
-    outs = [native.package_name() + ".lib"],
-    srcs = [native.package_name() + ".dll"],
-    cmd = "cp ./$(location " + native.package_name() + ".dll).if.lib \"$@\"",
+    name = pname + "_importlib",
+    outs = [pname + ".lib"],
+    srcs = [pname + ".dll"],
+    cmd = "cp ./$(location " + pname + ".dll).if.lib \"$@\"",
     visibility = ["//visibility:public"],
   )
-
+  
   native.cc_binary(
-    name = native.package_name() + ".dll",
+    name = pname + ".dll",
     visibility = ["//visibility:public"],
     linkshared = 1,
     linkopts = _expand_importlibs(packages) + [
       "/ENTRY:_craft_types_DLLMAIN"
     ] + linkopts,
     srcs = native.glob([
-      "src/" + native.package_name() + "/**/*.c*",
-      "src/" + native.package_name() + "/**/*.c*",
+      "src/" + pname + "/**/*.c*",
+      "src/" + pname + "/**/*.c*",
     ]),
     data = make_impdep(packages),
     deps = ["headers"] + deps,
     
     copts = ["/std:c++latest"],
-    defines = ["CULTLANG_"+ native.package_name().upper() + "_DLL", 
-      "CULT_CURRENT_PACKAGE=\\\"org_cultlang_" + native.package_name() + "\\\""
+    defines = ["CULTLANG_"+ pname.upper() + "_DLL", 
+      "CULT_CURRENT_PACKAGE=\\\"org_cultlang_" + pname + "\\\""
     ],
   )
 
   native.cc_import(
-    name = native.package_name() + "_lib",
-    interface_library = native.package_name() + ".lib",
+    name = pname + "_lib",
+    interface_library = pname + ".lib",
     visibility = ["//visibility:public"],
-    shared_library = native.package_name() + ".dll",
+    shared_library = pname + ".dll",
   )
 
   native.cc_library(
     visibility = ["//visibility:public"],
-    name = native.package_name() + "_import",
-    srcs = [native.package_name() + ".lib"],
+    name = pname + "_import",
+    srcs = [pname + ".lib"],
   )
 
   native.cc_library(
-      name = native.package_name(),
+      name = pname,
       includes = ["src"],
-      deps = ["headers", native.package_name() + "_lib"],
+      deps = ["headers", pname + "_lib"],
       visibility = ["//visibility:public"], 
   )
 
 def entrypoint_generator(name, packages=[],  deps=[]):
+  pname = native.package_name().split("/")[-1]
   native.cc_binary(
     name = name,
     srcs = native.glob(["entry/**/*"]),
     linkopts = _expand_importlibs(packages),
     data = make_impdep(packages),
-    deps = [native.package_name()] + deps,
+    deps = [pname] + deps,
     
     copts = ["/std:c++latest"]
   )
