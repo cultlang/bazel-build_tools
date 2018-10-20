@@ -10,11 +10,6 @@ def _expand_libs(imps):
     res.append("//{}:{}.lib".format(i, i))
   return res
 
-def make_impdep(imps):
-  res = []
-  for i in imps:
-    res.append("//{}:{}.dll".format(i, i))
-  return res
 
 def header_generator(packages=[], extra_headers=[], deps=[]):
   pname = native.package_name().split("/")[-1]
@@ -72,13 +67,27 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
       visibility = ["//visibility:public"], 
   )
 
+
 def entrypoint_generator(name, packages=[],  deps=[]):
   pname = native.package_name().split("/")[-1]
+
+  local_dlls = []
+  for i in packages:
+    native.genrule(
+      name = "local_" + i + "_dll",
+      outs = [i + ".dll"],
+      srcs = ["//{}:{}.dll".format(i, i)],
+      cmd = "cp \"$<\" \"$@\"",
+      visibility = ["//visibility:public"],
+      output_to_bindir = 1
+    )
+
+    local_dlls.append("{}.dll".format(i))
+
   native.cc_binary(
     name = name,
-    srcs = native.glob(["entry/**/*"]),
-    linkopts = _expand_importlibs(packages),
-    data = make_impdep(packages),
+    srcs = native.glob(["entry/**/*"]) + _expand_libs(packages),
+    data = local_dlls,
     deps = [pname] + deps,
     
     copts = ["/std:c++latest"]
