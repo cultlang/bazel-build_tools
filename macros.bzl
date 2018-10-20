@@ -4,6 +4,12 @@ def _expand_importlibs(imps):
     res.append("$(location //" + i + ":" + i + ".dll).if.lib")
   return res
 
+def _expand_libs(imps):
+  res = []
+  for i in imps:
+    res.append("//{}:{}.lib".format(i, i))
+  return res
+
 def make_impdep(imps):
   res = []
   for i in imps:
@@ -36,14 +42,13 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     name = pname + ".dll",
     visibility = ["//visibility:public"],
     linkshared = 1,
-    linkopts = _expand_importlibs(packages) + [
+    linkopts = [
       "/ENTRY:_craft_types_DLLMAIN"
     ] + linkopts,
     srcs = native.glob([
       "src/" + pname + "/**/*.c*",
-      "src/" + pname + "/**/*.c*",
-    ]),
-    data = make_impdep(packages),
+      "src/" + pname + "/**/*.h*",
+    ]) + _expand_libs(packages),
     deps = ["headers"] + deps,
     
     copts = ["/std:c++latest"],
@@ -55,14 +60,9 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
   native.cc_import(
     name = pname + "_lib",
     interface_library = pname + ".lib",
+    data = [pname + ".lib"],
     visibility = ["//visibility:public"],
     shared_library = pname + ".dll",
-  )
-
-  native.cc_library(
-    visibility = ["//visibility:public"],
-    name = pname + "_import",
-    srcs = [pname + ".lib"],
   )
 
   native.cc_library(
