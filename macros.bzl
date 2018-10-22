@@ -47,9 +47,14 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     deps = ["headers"] + deps,
     
     copts = ["/std:c++latest"],
-    defines = ["CULTLANG_"+ pname.upper() + "_DLL", 
+    defines = [
+      "CULTLANG_"+ pname.upper() + "_DLL", 
       "CULT_CURRENT_PACKAGE=\\\"org_cultlang_" + pname + "\\\""
-    ],
+    ] + select({
+      "//build_tools:cult_trace": ["CULT_TRACE"],
+      "//build_tools:cult_debug": ["CULT_DEBUG"],
+      "//conditions:default": [],
+    }),
   )
 
   native.cc_import(
