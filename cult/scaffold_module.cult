@@ -1,0 +1,235 @@
+(define args (env/argv))
+
+(cond (!= (list/size args) 3)
+    (do
+        (print "Usage.. cult scaffold_module.cult")
+        (exit 1i32)
+    )
+)
+
+(define moduleName (list/get args 2))
+(define modulePath (format "%{0}/%{1}" "extensions" moduleName))
+
+
+
+(cond (fs/exists modulePath)
+    (do
+        (print "Module Exists")
+        (exit -1i32)
+    )
+)
+
+(print "Generating package...")
+
+(fs/mkdir modulePath)
+
+; Bazel Build File
+(fs/write (format "%{0}/%{1}" modulePath "BUILD") """
+load("//build_tools:macros.bzl", "header_generator", "dll_generator", "entrypoint_generator")
+
+header_generator(  
+    deps = [
+    "//util", 
+    "//types:headers", 
+    "//lisp:headers", 
+    ]
+)
+
+dll_generator(
+    packages = [
+    "types",
+    "lisp",
+    ],
+    deps = [
+    
+    ],
+)
+""")
+
+(print "Scaffolding...")
+
+; Readme
+(fs/write (format "%{0}/%{1}" modulePath "README.md") (format """
+# %{0}
+""" moduleName))
+
+; Readme
+(fs/write (format "%{0}/%{1}" modulePath ".gitignore") (format """
+common.cpp
+cmake/*
+CMakeLists.txt
+build
+dist
+.DS_Store
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+""" moduleName))
+
+
+(define srcPath (format "%{0}/src/%{1}" modulePath moduleName))
+(fs/mkdir srcPath)
+
+; Defines Header
+(fs/write (format "%{0}/%{1}" srcPath "defines.h") (format """
+#pragma once
+
+//
+// Platform Dynamic Library
+//
+#if defined _WIN32 || defined __CYGWIN__
+#ifdef __GNUC__
+#define CULTLANG_%{0}_EXPORTED_EXPORT __attribute__ ((dllexport))
+#define CULTLANG_%{0}_EXPORTED_IMPORT __attribute__ ((dllimport))
+#else
+#define CULTLANG_%{0}_EXPORTED_EXPORT __declspec(dllexport)
+#define CULTLANG_%{0}_EXPORTED_IMPORT __declspec(dllimport)
+#endif
+#else
+#if __GNUC__ >= 4
+#define CULTLANG_%{0}_EXPORTED_EXPORT __attribute__ ((visibility ("default")))
+#define CULTLANG_%{0}_EXPORTED_IMPORT
+#else
+#define CULTLANG_%{0}_EXPORTED_EXPORT
+#define CULTLANG_%{0}_EXPORTED_IMPORT
+#endif
+#endif
+
+
+//
+// Engine Compile
+//
+
+#ifdef CULTLANG_%{0}_DLL
+#define CULTLANG_%{0}_EXPORTED CULTLANG_%{0}_EXPORTED_EXPORT
+#else
+#define CULTLANG_%{0}_EXPORTED CULTLANG_%{0}_EXPORTED_IMPORT
+#endif
+""" (string/upper moduleName)))
+
+; Common Header
+(fs/write (format "%{0}/%{1}" srcPath "common.h") """
+#pragma once
+
+#include "defines.h"
+
+// C++
+#include <string>
+#include <regex>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <utility>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <iterator>
+#include <stack>
+#include <queue>
+#include <set>
+#include <chrono>
+#include <memory>
+#include <type_traits>
+#include <functional>
+
+
+// Vendor
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+
+
+// Deps
+#include "util/all.h"
+#include "types/core.h"
+#include "lisp/lisp.h"
+""")
+
+; All header
+(fs/write (format "%{0}/%{1}" srcPath "all.h") (format """
+#pragma once
+
+#include "%{0}/common.h"
+
+namespace cultlang {
+namespace %{0}
+{
+    
+    CULTLANG_%{1}_EXPORTED extern craft::lisp::BuiltinModuleDescription Builtin%{2};
+    CULTLANG_%{1}_EXPORTED craft::instance<craft::lisp::Module> make_%{0}_bindings(craft::instance<craft::lisp::Namespace> ns, craft::instance<> loader);
+}}
+
+""" (string/lower moduleName)
+    (string/upper moduleName)
+    (string/capital moduleName)
+))
+
+; All CU
+(fs/write (format "%{0}/%{1}" srcPath "all.cpp") (format """
+#include "%{0}/common.h"
+
+#include "all.h"
+
+#include "lisp/library/system/prelude.h"
+#include "lisp/semantics/cult/calling.h"
+
+using namespace craft;
+using namespace craft::lisp;
+using namespace craft::types;
+using namespace cultlang::%{0};
+
+
+
+#define lMM sem->builtin_implementMultiMethod
+#define HtP "%{0}"
+
+
+instance<Module> cultlang::%{0}::make_%{0}_bindings(instance<lisp::Namespace> ns, instance<> loader)
+{
+    auto ret = instance<Module>::make(ns, loader);
+    auto sem = instance<CultSemantics>::make(ret);
+    ret->builtin_setSemantics(sem);
+
+    lMM(HtP"/nothing", []() { return instance<uint32_t>::make();});
+    return ret;
+}
+
+BuiltinModuleDescription cultlang::%{0}::Builtin%{1}("cult/%{0}", cultlang::%{0}::make_%{0}_bindings);
+
+
+#include "types/dll_entry.inc"
+    
+""" (string/lower moduleName)
+    (string/capital moduleName)
+))
+
+(print "Done")
