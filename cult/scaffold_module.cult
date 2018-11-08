@@ -185,7 +185,7 @@ namespace %{0}
 {
     
     CULTLANG_%{1}_EXPORTED extern craft::lisp::BuiltinModuleDescription Builtin%{2};
-    CULTLANG_%{1}_EXPORTED craft::instance<craft::lisp::Module> make_%{0}_bindings(craft::instance<craft::lisp::Namespace> ns, craft::instance<> loader);
+    CULTLANG_%{1}_EXPORTED void make_%{0}_bindings(craft::instance<craft::lisp::Module>);
 }}
 
 """ (string/lower moduleName)
@@ -213,9 +213,8 @@ using namespace cultlang::%{0};
 #define HtP "%{0}"
 
 
-instance<Module> cultlang::%{0}::make_%{0}_bindings(instance<lisp::Namespace> ns, instance<> loader)
+void cultlang::%{0}::make_%{0}_bindings(craft::instance<craft::lisp::Module> ret)
 {
-    auto ret = instance<Module>::make(ns, loader);
     auto sem = instance<CultSemantics>::make(ret);
     ret->builtin_setSemantics(sem);
 
