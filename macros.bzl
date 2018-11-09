@@ -7,7 +7,8 @@ def _expand_importlibs(imps):
 def _expand_libs(imps):
   res = []
   for i in imps:
-    res.append("//{}:{}.lib".format(i, i))
+    j = i.split("/")[-1]
+    res.append("//{}:{}.lib".format(i, j))
   return res
 
 
