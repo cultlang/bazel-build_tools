@@ -46,10 +46,10 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
   )
 
   native.cc_binary(
-    name = pname + ".so",
+    name = "lib" + pname + ".so",
     visibility = ["//visibility:public"],
     linkshared = 1,
-    linkopts = linkopts,
+    linkopts = linkopts + ["-lpthread", "-ldl", "-lstdc++fs"],
     srcs = native.glob(["src/" + pname + "/**/*.c*", "src/" + pname + "/**/*.h*"]),
     deps = ["headers"] + deps,
     copts = ["-std=c++17"],
@@ -102,7 +102,7 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
   native.cc_import(
     name = pname + "_so",
     visibility = ["//visibility:public"],
-    shared_library = pname + ".so",
+    shared_library = "lib" + pname + ".so",
   )
 
   native.cc_import(
@@ -159,10 +159,15 @@ def entrypoint_generator(name, packages=[],  deps=[]):
         "@bazel_tools//src/conditions:darwin": [],
         "//conditions:default": [],
     }),
+    linkopts= select ({
+      "@bazel_tools//src/conditions:windows": [],
+      "@bazel_tools//src/conditions:darwin": [],
+      "//conditions:default": ["-lpthread", "-ldl", "-lstdc++fs"],
+    }),
     deps = select({
-        "@bazel_tools//src/conditions:windows": [ "headers"] + deps,
-        "@bazel_tools//src/conditions:darwin": [ "headers"] + deps + _expand_dylibs(packages),
-        "//conditions:default": [ "headers"] + deps + _expand_sos(packages),
+        "@bazel_tools//src/conditions:windows": [pname] + [ "headers"] + deps,
+        "@bazel_tools//src/conditions:darwin": [pname] +  [ "headers"] + deps + _expand_dylibs(packages),
+        "//conditions:default": [pname] + [ "headers"] + deps + _expand_sos(packages),
     }),
     
     copts = select({

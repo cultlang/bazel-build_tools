@@ -219,7 +219,6 @@ void cultlang::%{0}::make_%{0}_bindings(craft::instance<craft::lisp::Module> ret
     ret->builtin_setSemantics(sem);
 
     lMM(HtP"/nothing", []() { return instance<uint32_t>::make();});
-    return ret;
 }
 
 BuiltinModuleDescription cultlang::%{0}::Builtin%{1}("cult/%{0}", cultlang::%{0}::make_%{0}_bindings);
