@@ -45,6 +45,24 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     visibility = ["//visibility:public"],
   )
 
+  cult_files = native.glob([
+        "cult/**/*.cult"
+  ])
+  native.filegroup(
+    name = pname + "_cultsrc",
+    srcs = [f.replace("cult/", "") for f in cult_files],
+  )
+
+  for f in cult_files:
+    native.genrule(
+        name = pname + f.replace("/", "_").replace(".", "_"),
+        outs = [f.replace("cult/", "")],
+        srcs = [f],
+        cmd = "cp \"$<\" \"$@\"",
+        visibility = ["//visibility:public"],
+        output_to_bindir = 1
+    )
+
   native.cc_binary(
     name = "lib" + pname + ".so",
     visibility = ["//visibility:public"],
@@ -52,6 +70,7 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     linkopts = linkopts + ["-lpthread", "-ldl", "-lstdc++fs"],
     srcs = native.glob(["src/" + pname + "/**/*.c*", "src/" + pname + "/**/*.h*"]),
     deps = ["headers"] + deps,
+    data = [pname + "_cultsrc"],
     copts = ["-std=c++17"],
     defines = [
       "CULTLANG_"+ pname.upper() + "_DLL", 
@@ -70,6 +89,7 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     linkopts = linkopts,
     srcs = native.glob(["src/" + pname + "/**/*.c*", "src/" + pname + "/**/*.h*"]),
     deps = ["headers"] + deps,
+    data = [pname + "_cultsrc"],
     copts = ["-std=c++17"],
     defines = [
       "CULTLANG_"+ pname.upper() + "_DLL", 
@@ -88,8 +108,7 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     linkopts = ["/ENTRY:_craft_types_DLLMAIN"] + linkopts,
     srcs = native.glob(["src/" + pname + "/**/*.c*", "src/" + pname + "/**/*.h*"]) + _expand_libs(packages),
     deps = ["headers"] + deps,
-    copts = ["/std:c++17"],
-    defines = [
+    data = [pname + "_cultsrc"],    defines = [
       "CULTLANG_"+ pname.upper() + "_DLL", 
       "CULT_CURRENT_PACKAGE=\\\"org_cultlang_" + pname + "\\\""
     ] + select({
