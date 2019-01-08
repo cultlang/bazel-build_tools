@@ -108,6 +108,7 @@ def dll_generator(packages=[], deps=[], linkopts=[]):
     linkopts = ["/ENTRY:_craft_types_DLLMAIN"] + linkopts,
     srcs = native.glob(["src/" + pname + "/**/*.c*", "src/" + pname + "/**/*.h*"]) + _expand_libs(packages),
     deps = ["headers"] + deps,
+    copts = ["/std:c++17"],
     data = [pname + "_cultsrc"],    defines = [
       "CULTLANG_"+ pname.upper() + "_DLL", 
       "CULT_CURRENT_PACKAGE=\\\"org_cultlang_" + pname + "\\\""
@@ -190,8 +191,9 @@ def entrypoint_generator(name, packages=[],  deps=[]):
     }),
     
     copts = select({
-        "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
+        "@bazel_tools//src/conditions:windows": ["/std:c++17"],
         "@bazel_tools//src/conditions:darwin": ["-std=c++17"],
         "//conditions:default": ["-std=c++17"],
     }),
   )
+  
